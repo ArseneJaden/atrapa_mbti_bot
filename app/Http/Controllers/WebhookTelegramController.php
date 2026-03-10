@@ -8,23 +8,26 @@ class WebhookTelegramController extends Controller
 {
     public function handle(Request $request)
     {
-        // Obtener toda la información que envía Telegram
         $update = $request->all();
-
-        // Para depuración, puedes guardar en el log
         \Log::info('Telegram update:', $update);
 
-        // Verificar si hay un callback de botón inline (clic)
+        // Manejar callback de botón inline
         if (isset($update['callback_query'])) {
             $callback = $update['callback_query'];
             $chatId = $callback['message']['chat']['id'];
             $callbackData = $callback['data'];
 
-            // Aquí llamamos a un servicio que procesa la acción
-            $responseText = "Recibimos tu clic: " . $callbackData;
+            $this->answerCallbackQuery($callback['id'], "Recibimos tu clic: " . $callbackData);
+        }
 
-            // Responder a Telegram
-            $this->answerCallbackQuery($callback['id'], $responseText);
+        // Manejar mensajes normales (como /start)
+        if (isset($update['message'])) {
+            $chatId = $update['message']['chat']['id'];
+            $text = $update['message']['text'] ?? '';
+
+            if ($text === '/start') {
+                $this->sendMessage($chatId, "¡Hola! Bienvenido al bot.");
+            }
         }
 
         return response()->json(['status' => 'ok']);
@@ -32,7 +35,7 @@ class WebhookTelegramController extends Controller
 
     private function answerCallbackQuery($callbackId, $text)
     {
-        $token = env('TELEGRAM_BOT_TOKEN'); // tu token de BotFather
+        $token = env('TELEGRAM_BOT_TOKEN');
         $url = "https://api.telegram.org/bot{$token}/answerCallbackQuery";
 
         $postData = [
@@ -41,7 +44,23 @@ class WebhookTelegramController extends Controller
             'show_alert' => false
         ];
 
-        // Enviar request a Telegram
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    private function sendMessage($chatId, $text)
+    {
+        $token = env('TELEGRAM_BOT_TOKEN');
+        $url = "https://api.telegram.org/bot{$token}/sendMessage";
+
+        $postData = [
+            'chat_id' => $chatId,
+            'text' => $text
+        ];
+
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
