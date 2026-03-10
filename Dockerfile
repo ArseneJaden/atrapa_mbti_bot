@@ -1,4 +1,4 @@
-# Base image PHP 8.4 CLI + Composer
+# Base image PHP 8.3 CLI + Composer
 FROM php:8.4-cli
 
 # Instalar extensiones necesarias de Laravel y PostgreSQL
@@ -24,4 +24,4 @@ RUN composer install --no-dev --optimize-autoloader
 EXPOSE 10000
 
 # Comando para arrancar Laravel
-CMD php artisan serve --host=0.0.0.0 --port=10000
+CMD php artisan serve --host=0.0.0.0 --port=$PORT
